@@ -108,13 +108,15 @@ def addbook(title, author, description, currentowner, tags):
         SELECT id FROM tags
         WHERE tagname = ?
         ''', (i,))
-        tagid = cursor.fetchone()
+
+        tagid = cursor.fetchone()[0]
+        bookid = cursor.execute("SELECT id FROM books WHERE title = ? AND author = ? AND description = ? AND currentowner = ? ORDER BY id DESC", (title, author, description, currentowner)).fetchone()[0]
 
         cursor.execute('''
         INSERT INTO booktags (tagid, bookid)
         VALUES (?, ?)
-        ''', (tagid[0], cursor.lastrowid))
-        conn.commit()
+        ''', (tagid, bookid))
+    
     conn.commit()
 
 def addtag(tagname):

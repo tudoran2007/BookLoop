@@ -1,6 +1,7 @@
 from database import *
 from functools import wraps
 import hashlib
+from PIL import Image
 from flask import Flask, render_template, url_for, request, redirect, session
 
 app = Flask(__name__)
@@ -12,7 +13,7 @@ def hash(value):
 def login_required(view):
     @wraps(view)
     def wrapped_view(**kwargs):
-        if 'username' not in session or 'password_hash' not in session:
+        if 'username' not in session or 'password_hash' not in session or not checklogin(session['username'], session['password_hash']):
             return redirect(url_for('login'))
         return view(**kwargs)
     return wrapped_view
@@ -67,12 +68,63 @@ def logout():
 @app.route('/booksearch', methods=['GET', 'POST'])
 @login_required
 def booksearch():
-    return render_template('booksearch.html')
 
-@app.route('/addbook', methods=['GET', 'POST'])
+    booklist = [{'id':i[0], 'title':i[1], 'author':i[2], 'tags':[j[0] for j in cursor.execute("SELECT tags.tagname FROM tags, booktags WHERE booktags.bookid = ? AND booktags.tagid = tags.id", (i[0],))]} for i in cursor.execute("SELECT * FROM books").fetchall()]
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        author = request.form.get('author')
+        tags = request.form.getlist('tags')
+
+        query = "SELECT * FROM books WHERE 1=1"
+
+        if title:
+            query += f" AND title LIKE '%{title}%'"
+        
+        if author:
+            query += f" AND author LIKE '%{author}%'"
+
+        if tags:
+            for i in tags:
+                id = cursor.execute("SELECT id FROM tags WHERE tagname = ?", (i,)).fetchone()[0]
+                query += f" AND id IN (SELECT bookid FROM booktags WHERE tagid = {id})"
+
+        booklist = [{'id':i[0], 'title':i[1], 'author':i[2], 'description':i[3]} for i in cursor.execute(query).fetchall()]
+
+    return render_template('booksearch.html', availabletags=[i[0] for i in cursor.execute("SELECT tagname FROM tags")], books=booklist)
+
+@app.route('/createlisting', methods=['GET', 'POST'])
 @login_required
-def addbook():
-    return render_template('addbook.html')
+def createlisting():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        author = request.form.get('author')
+        description = request.form.get('description')
+        tags = request.form.getlist('tags')
+        photo = request.files['photo']
+
+        ownerid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
+
+        addbook(title, author, description, ownerid, tags)
+
+        bookid = cursor.execute("SELECT id FROM books WHERE title = ? AND author = ? AND description = ? AND currentowner = ? ORDER BY id DESC", (title, author, description, ownerid)).fetchone()[0]
+
+        filepath = f"static/photos/{bookid}.jpeg"
+        image = Image.open(photo)
+        image = image.convert('RGB')
+        image.save(filepath, 'JPEG')
+
+        return redirect(url_for('home'))
+        
+    return render_template('createlisting.html', availabletags=[i[0] for i in cursor.execute("SELECT tagname FROM tags").fetchall()])
+
+@app.route('/bookinfo/<int:bookid>')
+@login_required
+def bookinfo(bookid):
+    book = cursor.execute("SELECT * FROM books WHERE id = ?", (bookid,)).fetchone()
+    tags = [i[0] for i in cursor.execute("")]
+
+    return render_template('bookinfo.html', book=book, tags=tags)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
