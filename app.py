@@ -6,6 +6,7 @@ from flask import Flask, render_template, url_for, request, redirect, session
 
 app = Flask(__name__)
 app.secret_key = "bookloop-is-very-cool"
+app.permanent_session_lifetime = 7*60*60*24
 
 def hash(value):
     return str(hashlib.sha256(value.encode()).hexdigest())
@@ -35,10 +36,11 @@ def login():
         password_hash = hash(password)
 
         if checklogin(username, password_hash):
+
+            session['username'] = username
+            session['password_hash'] = password_hash
+
             if remember:
-                session['username'] = username
-                session['password_hash'] = password_hash
-                app.permanent_session_lifetime = 7*60*60*24
                 session.permanent = True
             return redirect(url_for('home'))
 
@@ -137,7 +139,7 @@ def bookinfo(bookid):
 def chats():
     userid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
     chatids = [i[0] for i in cursor.execute("SELECT DISTINCT chats.chatid FROM chats, messages WHERE chats.userid = ? AND chats.chatid = messages.chat ORDER BY (SELECT MAX(time) FROM messages WHERE messages.chat = chats.chatid)", (userid,)).fetchall()]
-    chatinfo = [{'id':i, 'name':cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? and chats.userid != ?", (i, userid)).fetchone()[0], 'lastactivity':cursor.execute("SELECT (messages.time) FROM messages WHERE messages.chat = ?", (i,)).fetchone()[0]} for i in chatids]
+    chatinfo = [{'id':i, 'name':cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? AND chats.userid != ? AND chats.userid = users.id", (i, userid)).fetchone()[0], 'lastactivity':cursor.execute("SELECT (messages.time) FROM messages WHERE messages.chat = ?", (i,)).fetchone()[0]} for i in chatids]
 
     return render_template('chats.html', chats=chatinfo)
 
@@ -164,9 +166,9 @@ def message(user):
     return render_template('message.html', user=user)
 
 @app.route('/chats/<int:chatid>', methods=['GET', 'POST'])
-@login_required
+@login_required 
 def chat(chatid):
-    name = cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? and chats.userid != ?", (chatid, session['username'])).fetchone()[0]
+    name = cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? AND chats.userid = users.id AND users.username != ?", (chatid, session['username'])).fetchone()[0]
     messages = [{'sender':cursor.execute("SELECT username FROM users WHERE id = ?", (i[0],)).fetchone()[0], 'time':i[1], 'message':i[2]} for i in cursor.execute("SELECT messages.sender, messages.time, messages.message FROM messages WHERE messages.chat = ?", (chatid,)).fetchall()]
 
     if request.method == 'POST':
