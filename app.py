@@ -128,11 +128,9 @@ def bookinfo(bookid):
     book = cursor.execute("SELECT * FROM books WHERE id = ?", (bookid,)).fetchone()
     bookinfo = {'id':book[0], 'title':book[1], 'author':book[2], 'description':book[3], 'owner':cursor.execute("SELECT username FROM users WHERE id = ?", (book[4],)).fetchone()[0], 'tags':[i[0] for i in cursor.execute("SELECT tags.tagname FROM tags, booktags WHERE booktags.bookid = ? AND booktags.tagid = tags.id", (bookid,))]}
     tags = [i[0] for i in cursor.execute("")]
+    pastowners = [{'name':i[0]} for i in cursor.execute("SELECT users.username FROM users, transactions WHERE transactions.bookid = ? AND transactions.sellerid = users.id ORDER BY transactions.time DESC", (bookid,)).fetchall()]
 
-    if book:
-        return render_template('bookinfo.html', book=bookinfo)
-    else:
-        return "book not found"
+    return render_template('bookinfo.html', book=bookinfo, pastowners=pastowners)
     
 @app.route('/chats')
 @login_required
@@ -187,5 +185,51 @@ def updatechat(chatid):
 
     return messages_html
 
+@app.route('/transfer/<string:user>', methods=['GET', 'POST'])
+@login_required
+def transfer(user):
+    userid = cursor.execute("SELECT id FROM users WHERE username = ?", (user,)).fetchone()[0]
+    myid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
+
+    mybooks = [{'title':i[1]} for i in cursor.execute("SELECT * FROM books WHERE currentowner = ?", (myid,)).fetchall()]
+    print(mybooks)
+
+    if request.method == 'POST':
+        transferedbooknames = request.form.getlist('books')
+        for i in transferedbooknames:
+            id = cursor.execute("SELECT id FROM books WHERE title = ?", (i,)).fetchone()[0]
+            transferbook(id, myid, userid)
+
+        return redirect(url_for('chats', chatid=chatbetween(userid, myid)))
+
+    return render_template('transfer.html', user=user, mybooks=mybooks)
+
+@app.route('/mybooks', methods=['GET', 'POST'])
+@login_required
+def mybooks():
+    myid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
+    booklist = [{'id':i[0], 'title':i[1], 'author':i[2], 'tags':[j[0] for j in cursor.execute("SELECT tags.tagname FROM tags, booktags WHERE booktags.bookid = ? AND booktags.tagid = tags.id", (i[0],))]} for i in cursor.execute("SELECT * FROM books WHERE currentowner = ?", (myid,)).fetchall()]
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        author = request.form.get('author')
+        tags = request.form.getlist('tags')
+
+        query = "SELECT * FROM books WHERE 1=1"
+
+        if title:
+            query += f" AND title LIKE '%{title}%'"
+        
+        if author:
+            query += f" AND author LIKE '%{author}%'"
+
+        if tags:
+            for i in tags:
+                id = cursor.execute("SELECT id FROM tags WHERE tagname = ?", (i,)).fetchone()[0]
+                query += f" AND id IN (SELECT bookid FROM booktags WHERE tagid = {id})"
+
+        booklist = [{'id':i[0], 'title':i[1], 'author':i[2], 'description':i[3]} for i in cursor.execute(query).fetchall()]
+
+    return render_template('mybooks.html', availabletags=[i[0] for i in cursor.execute("SELECT tagname FROM tags")], books=booklist)
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

@@ -160,11 +160,16 @@ def deletebook(bookid):
     ''', (bookid,))
     conn.commit()
 
-def addtransaction(bookid, sellerid, buyerid):
+def transferbook(bookid, sellerid, buyerid):
     cursor.execute('''
-    INSERT INTO transactions (bookid, sellerid, buyerid, time)
-    VALUES (?, ?, ?, datetime('now'))
-    ''', (bookid, sellerid, buyerid))
+    UPDATE books SET currentowner = ?
+    WHERE id = ?''', (buyerid, bookid))
+    conn.commit()
+
+    cursor.execute('''
+    INSERT INTO transactions
+    (bookid, sellerid, buyerid, time)
+    VALUES (?, ?, ?, datetime('now'))''', (bookid, sellerid, buyerid))
     conn.commit()
 
 def createchat(user1id, user2id):

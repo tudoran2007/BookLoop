@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookLoop</title>
+    <a href="/">
+        <button>Home</button>
+    </a>
+    <h1>Transfer Book to {{ user }}</h1>
+    <style>
+        .scrollable-menu {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #777;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <form action="/transfer/{{ user }}" method="post" enctype="multipart/form-data">
+        <div class="scrollable-menu">
+            {% for book in mybooks %}
+                <input type="checkbox" name="books" value="{{ book.title }}">{{book.title}}</input>
+                <br>
+            {% endfor %}
+        </div>
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
