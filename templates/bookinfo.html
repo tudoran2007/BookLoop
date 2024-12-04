@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookLoop</title>
+    <a href="/">
+        <button>Home</button>
+    </a>
+    <a href="/books">
+        <button>Search Books</button>
+    </a>
+    <h1>Book Info</h1>
+    <style>
+        .scrollable-menu {
+            max-height: 80px;
+            overflow-y: auto;
+            border: 1px solid #777;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <img src="{{ url_for('static', filename='photos/' + book.id|string + '.jpeg') }}" alt="{{ book.title }}" height=300>
+    <p>Book ID: {{ book.id }}</p>
+    <p>Title: {{ book.title }}</p>
+    <p>Author: {{ book.author }}</p>
+    <p>Description: {{ book.description }}</p>
+    <div class="scrollable-menu">
+    {% for tag in book.tags %}
+        <p>{{ tag }}</p>
+    {% endfor %}
+    </div>
+    <p>Owner: {{ book.owner }}</p>
+    <a href="/message/{{ book.owner }}">
+        <button>Message Owner</button>
+    </a>
+</body>
+</html>

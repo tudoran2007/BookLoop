@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookLoop</title>
+    <h1>Message {{ user }}</h1>
+</head>
+<body>
+    <form method='POST' action="/message/{{ user }}">
+        <input type="text" id="message" name="message" required>
+        <input type="submit" value="Send">
+    </form>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookLoop</title>
+    <h1>Chats</h1>
+</head>
+<body>
+    {% for chat in chats %}
+        <a href="/chats/{{ chat.id }}">
+            <button>{{ chat.name }}, Last active: {{ chat.lastactivity }}</button>
+        </a>
+    {% endfor %}
+</body>
+</html>

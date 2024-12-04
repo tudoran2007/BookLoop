@@ -13,7 +13,9 @@ def hash(value):
 def login_required(view):
     @wraps(view)
     def wrapped_view(**kwargs):
-        if 'username' not in session or 'password_hash' not in session or not checklogin(session['username'], session['password_hash']):
+        if 'username' not in session or 'password_hash' not in session:
+            return redirect(url_for('login'))
+        elif not checklogin(session['username'], session['password_hash']):
             return redirect(url_for('login'))
         return view(**kwargs)
     return wrapped_view
@@ -65,7 +67,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/booksearch', methods=['GET', 'POST'])
+@app.route('/books', methods=['GET', 'POST'])
 @login_required
 def booksearch():
 
@@ -118,13 +120,70 @@ def createlisting():
         
     return render_template('createlisting.html', availabletags=[i[0] for i in cursor.execute("SELECT tagname FROM tags").fetchall()])
 
-@app.route('/bookinfo/<int:bookid>')
+@app.route('/books/<int:bookid>')
 @login_required
 def bookinfo(bookid):
     book = cursor.execute("SELECT * FROM books WHERE id = ?", (bookid,)).fetchone()
+    bookinfo = {'id':book[0], 'title':book[1], 'author':book[2], 'description':book[3], 'owner':cursor.execute("SELECT username FROM users WHERE id = ?", (book[4],)).fetchone()[0], 'tags':[i[0] for i in cursor.execute("SELECT tags.tagname FROM tags, booktags WHERE booktags.bookid = ? AND booktags.tagid = tags.id", (bookid,))]}
     tags = [i[0] for i in cursor.execute("")]
 
-    return render_template('bookinfo.html', book=book, tags=tags)
+    if book:
+        return render_template('bookinfo.html', book=bookinfo)
+    else:
+        return "book not found"
+    
+@app.route('/chats')
+@login_required
+def chats():
+    userid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
+    chatids = [i[0] for i in cursor.execute("SELECT DISTINCT chats.chatid FROM chats, messages WHERE chats.userid = ? AND chats.chatid = messages.chat ORDER BY (SELECT MAX(time) FROM messages WHERE messages.chat = chats.chatid)", (userid,)).fetchall()]
+    chatinfo = [{'id':i, 'name':cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? and chats.userid != ?", (i, userid)).fetchone()[0], 'lastactivity':cursor.execute("SELECT (messages.time) FROM messages WHERE messages.chat = ?", (i,)).fetchone()[0]} for i in chatids]
+
+    return render_template('chats.html', chats=chatinfo)
+
+@app.route('/message/<string:user>', methods=['GET', 'POST'])
+@login_required
+def message(user):
+    userid = cursor.execute("SELECT id FROM users WHERE username = ?", (user,)).fetchone()[0]
+    myid = cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0]
+
+    if request.method == 'POST':
+        message = request.form.get('message')
+        createchat(userid, myid)
+        newchatid = chatbetween(userid, myid)
+        sendmessage(myid, newchatid, message)
+
+        return redirect(url_for('chats', chatid=newchatid))
+    
+    if userid == myid:
+        return "is bro schizofrenic"
+
+    if chatbetween(userid, myid) != None:
+        return redirect(url_for('chat', chatid=chatbetween(userid, myid)))
+    
+    return render_template('message.html', user=user)
+
+@app.route('/chats/<int:chatid>', methods=['GET', 'POST'])
+@login_required
+def chat(chatid):
+    name = cursor.execute("SELECT users.username FROM users, chats WHERE chats.chatid = ? and chats.userid != ?", (chatid, session['username'])).fetchone()[0]
+    messages = [{'sender':cursor.execute("SELECT username FROM users WHERE id = ?", (i[0],)).fetchone()[0], 'time':i[1], 'message':i[2]} for i in cursor.execute("SELECT messages.sender, messages.time, messages.message FROM messages WHERE messages.chat = ?", (chatid,)).fetchall()]
+
+    if request.method == 'POST':
+        message = request.form.get('message')
+        sendmessage(cursor.execute("SELECT id FROM users WHERE username = ?", (session['username'],)).fetchone()[0], chatid, message)
+        return redirect(url_for('chat', chatid=chatid))
+
+    return render_template('chat.html', chatid=chatid, name=name, messages=messages)
+
+@app.route('/updatechat/<int:chatid>', methods=['GET', 'POST'])
+@login_required
+def updatechat(chatid):
+    messages = [{'sender':cursor.execute("SELECT username FROM users WHERE id = ?", (i[0],)).fetchone()[0], 'time':i[1], 'message':i[2]} for i in cursor.execute("SELECT messages.sender, messages.time, messages.message FROM messages WHERE messages.chat = ?", (chatid,)).fetchall()]
+    messages_html = ''.join([f"<p><strong>{msg['sender']}</strong> [{msg['time']}]: {msg['message']}</p>"for msg in messages])
+
+
+    return messages_html
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

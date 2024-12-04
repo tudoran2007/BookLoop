@@ -167,6 +167,41 @@ def addtransaction(bookid, sellerid, buyerid):
     ''', (bookid, sellerid, buyerid))
     conn.commit()
 
+def createchat(user1id, user2id):
+    try:
+        latestchat = cursor.execute("SELECT chatid FROM chats ORDER BY chatid DESC").fetchone()[0]
+    except:
+        latestchat = 0
+
+    cursor.execute('''
+    INSERT INTO chats (chatid, userid)
+    VALUES (?, ?)
+    ''', (latestchat+1, user1id))
+    conn.commit()
+    
+    cursor.execute('''
+    INSERT INTO chats (chatid, userid)
+    VALUES (?, ?)
+    ''', (latestchat+1, user2id))
+    conn.commit()
+
+def chatbetween(user1id, user2id):
+    try:
+        id = cursor.execute('''
+        SELECT chatid FROM chats
+        WHERE userid = ? AND chatid IN (SELECT chatid FROM chats WHERE userid = ?)
+        ''', (user1id, user2id)).fetchone()[0]
+    except:
+        id = None
+    return id
+
+def sendmessage(sender, chat, message):
+    cursor.execute('''
+    INSERT INTO messages (sender, chat, time, message)
+    VALUES (?, ?, datetime('now'), ?)
+    ''', (sender, chat, message))
+    conn.commit()
+
 if cursor.execute("SELECT * FROM tags").fetchone() is None:
     tags = [
     'Fiction',

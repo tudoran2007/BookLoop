@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookLoop</title>
+    <h1>{{ name }}</h1>
+    <style>
+        .scrollable-menu {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="scrollable-menu" id="messages">
+        {% for message in messages %}
+            <p>{{message.sender}}:   {{ message.message }}</p>
+        {% endfor %}
+    </div>
+    <form method="POST" action="/chats/{{ chatid }}">
+        <input type="text" name="message" id="messageInput" required></input>
+        <button type="submit">Send</button>
+    </form>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function update(){
+            $.get("/updatechat/{{ chatid }}", function(data){
+                $("#messages").html(data);
+                scrollToBottom();
+            });
+        }
+
+        function scrollToBottom() {
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        setTimeout(1000)
+        update();
+
+        var intervalId = setInterval(function() {
+            update();
+        }, 5000);
+    </script>
+</body>
+</html>
