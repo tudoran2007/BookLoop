@@ -11,7 +11,7 @@
         <button>Chats</button>
     </a>
     <br>
-    <a href="/transferbook/{{ name }}">
+    <a href="/transfer/{{ name }}">
         <button>Transfer Book</button>
     </a>
     <h1>{{ name }}</h1>
@@ -26,7 +26,7 @@
 <body>
     <div class="scrollable-menu" id="messages">
         {% for message in messages %}
-            <p>{{message.sender}}:   {{ message.message }}</p>
+            <p><strong>{{message.sender}}:</strong>   {{ message.message }}</p>
         {% endfor %}
     </div>
     <form method="POST" action="/chats/{{ chatid }}">
@@ -53,7 +53,7 @@
 
         var intervalId = setInterval(function() {
             update();
-        }, 5000);
+        }, 2000);
     </script>
 </body>
 </html>

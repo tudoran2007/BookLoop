@@ -1,5 +1,6 @@
 #this file handles the database connection and queries
 
+from misc import *
 import sqlite3
 conn = sqlite3.connect('database.db', check_same_thread=False)
 cursor = conn.cursor()
@@ -96,7 +97,7 @@ def changepassword(username, password):
     UPDATE users
     SET password = ?
     WHERE username = ?
-    ''', (password, username))
+    ''', (hash(password), username))
     conn.commit()
 
 def addbook(title, author, description, currentowner, tags):
@@ -121,6 +122,14 @@ def addbook(title, author, description, currentowner, tags):
     
     conn.commit()
 
+def changepassword(email, password):
+    cursor.execute('''
+    UPDATE users
+    SET password = ?
+    WHERE email = ?
+    ''', (hash(password), email))
+    conn.commit()
+
 def addtag(tagname):
     cursor.execute('''
     INSERT INTO tags (tagname)
@@ -128,12 +137,12 @@ def addtag(tagname):
     ''', (tagname,))
     conn.commit()
 
-def editbook(bookid, title, author, description, currentowner, tags):
+def editbook(bookid, title, author, description, tags):
     cursor.execute('''
     UPDATE books
-    SET title = ?, author = ?, description = ?, currentowner = ?
+    SET title = ?, author = ?, description = ?
     WHERE id = ?
-    ''', (title, author, description, currentowner, bookid))
+    ''', (title, author, description, bookid))
 
     cursor.execute('''
     DELETE FROM booktags
@@ -160,6 +169,17 @@ def deletebook(bookid):
     DELETE FROM books
     WHERE id = ?
     ''', (bookid,))
+
+    cursor.execute('''
+    DELETE FROM booktags
+    WHERE bookid = ?
+    ''', (bookid,))
+
+    cursor.execute('''
+    DELETE FROM transactions
+    WHERE bookid = ?
+    ''', (bookid,))
+    
     conn.commit()
 
 def transferbook(bookid, sellerid, buyerid):
@@ -208,6 +228,14 @@ def sendmessage(sender, chat, message):
     VALUES (?, ?, datetime('now'), ?)
     ''', (sender, chat, message))
     conn.commit()
+
+def getuserid(username):
+    cursor.execute('''
+    SELECT id FROM users
+    WHERE username = ?
+    ''', (username,))
+
+    return cursor.fetchone()[0]
 
 if cursor.execute("SELECT * FROM tags").fetchone() is None:
     tags = [

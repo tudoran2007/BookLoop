@@ -33,11 +33,12 @@
     </div>
     <p>Owner: {{ book.owner }}</p>
     <div class="scrollable-menu">
+        <p>Past Owners:</p>
         {% for pastowner in pastowners %}
             <p>{{ pastowner.name }}</p>
         {% endfor %}
     </div>
-    <a href="/message/{{ book.owner }}">
+    <a href="/message/{{ book.owner }}/{{ book.id }}">
         <button>Message Owner</button>
     </a>
 </body>
