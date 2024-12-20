@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BookLoop</title>
+
     <a href="/">
         <button>Home</button>
     </a>
+
     <h1>Edit Book</h1>
+
     <style>
         .scrollable-menu {
             max-height: 80px;
@@ -21,14 +24,19 @@
     <form action="/editbook/{{ book.id }}" method="post" enctype="multipart/form-data">
         <label for="title">Title:</label> <input type="text" id="title" name="title" value="{{ book.title }}">
         <br>
+
         <label for="author">Author:</label> <input type="text" id="author" name="author" value="{{ book.author }}">
         <br>
+
         <label for="description">Description:</label> <input type="text" id="description" name="description" value="{{ book.description }}">
         <br>
+
         <label for="photo">Change Photo:</label> <input type="file" id="photo" name="photo" accept="image/*" >
         <br>
+        
         <label for="tags">Select Tags:</label>
         <br>
+
         <div class="scrollable-menu">
             {% for tag in availabletags %}
                 <input type="checkbox" name="tags" value="{{ tag }}" {% if tag in tags %}checked{% endif %}>{{tag}}</input>
@@ -36,6 +44,7 @@
             {% endfor %}
         </div>
         <br>
+        
         <input type="submit" value="Submit">
     </form>
 </body>

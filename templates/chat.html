@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>BookLoop</title>
+
     <a href="/">
         <button>Home</button>
     </a>
+
     <a href="/chats">
         <button>Chats</button>
     </a>
     <br>
+
     <a href="/transfer/{{ name }}">
         <button>Transfer Book</button>
     </a>
+
     <h1>{{ name }}</h1>
+
     <style>
         .scrollable-menu {
-            max-height: 600px;
+            height: 500px;
             overflow-y: auto;
             border: 1px solid #777;
         }
@@ -29,27 +35,32 @@
             <p><strong>{{message.sender}}:</strong>   {{ message.message }}</p>
         {% endfor %}
     </div>
+
     <form method="POST" action="/chats/{{ chatid }}">
         <input type="text" name="message" id="messageInput" required></input>
+
         <button type="submit">Send</button>
     </form>
 
+    <!-- This script is used to fetch new messages without reloading the page -->
+    <!-- Every second it fetches chat data and displays it in the messages menu  -->
+    <!-- It also scrolls to the bottom of the chat to show the latest messages -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         function update(){
             $.get("/updatechat/{{ chatid }}", function(data){
                 $("#messages").html(data);
-                scrollToBottom();
             });
         }
 
         function scrollToBottom() {
-            const messageContainer = document.getElementById('messageContainer');
+            const messageContainer = document.getElementById('messages');
             messageContainer.scrollTop = messageContainer.scrollHeight;
         }
 
         setTimeout(1000)
         update();
+        scrollToBottom();
 
         var intervalId = setInterval(function() {
             update();
